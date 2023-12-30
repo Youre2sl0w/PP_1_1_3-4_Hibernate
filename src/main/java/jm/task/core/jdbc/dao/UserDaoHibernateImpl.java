@@ -16,109 +16,95 @@ public class UserDaoHibernateImpl implements UserDao {
     private static final String createUsersTable = "create table if not exists mydatabase.users (id bigint primary key auto_increment, name varchar(255), lastname varchar(255), age int)";
     private static final String dropUsersTable = "drop table if exists mydatabase.users";
 
-    private static final SessionFactory sessionFactory = Util.getConnection();
-    User user;
+    private final SessionFactory sessionFactory;
 
     public UserDaoHibernateImpl() {
+        sessionFactory = Util.getConnection();
     }
 
-
     @Override
-    public void createUsersTable() {
-        Session session = sessionFactory.openSession();
-        Transaction transaction = session.beginTransaction();
-
-        try {
-            session.createNativeQuery(createUsersTable).executeUpdate();
+    public void createUsersTableQuery() {
+        Transaction transaction = null;
+        try (Session session = Util.getConnection().openSession()) {
+            User user = new User();
+            transaction = session.beginTransaction();
+            session.createNativeQuery(String.format(createUsersTable, user.getClass().getSimpleName())).executeUpdate();
             transaction.commit();
-        } catch (HibernateException e) {
+        } catch (Exception e) {
+            transaction.rollback();
             e.printStackTrace();
-            if (transaction != null) {
-                transaction.rollback();
-            }
+            throw new RuntimeException();
         }
-        session.close();
     }
 
     @Override
     public void dropUsersTable() {
-        Session session = sessionFactory.openSession();
-        Transaction transaction = session.beginTransaction();
-
-        try {
+        Transaction transaction = null;
+        try (Session session = Util.getConnection().openSession()) {
+            transaction = session.beginTransaction();
             session.createNativeQuery(dropUsersTable).executeUpdate();
             transaction.commit();
-        } catch (HibernateException e) {
+        } catch (Exception e) {
+            transaction.rollback();
             e.printStackTrace();
-            if (transaction != null) {
-                transaction.rollback();
-            }
+            throw new RuntimeException();
         }
-        session.close();
     }
 
     @Override
     public void saveUser(String name, String lastName, byte age) {
-        Session session = sessionFactory.openSession();
-        Transaction transaction = session.beginTransaction();
-
-        try {
-            session.save(new User(name, lastName, age));
+        Transaction transaction = null;
+        try (Session session = Util.getConnection().openSession()) {
+            User user = new User(name, lastName, age);
+            transaction = session.beginTransaction();
+            session.save(user);
             transaction.commit();
-        } catch (HibernateException e) {
+        } catch (Exception e) {
+            transaction.rollback();
             e.printStackTrace();
-            if (transaction != null) {
-                transaction.rollback();
-            }
+            throw new RuntimeException();
         }
-        session.close();
     }
+
 
     @Override
     public void removeUserById(long id) {
-        Session session = sessionFactory.openSession();
         Transaction transaction = null;
-
-        try {
+        try (Session session = Util.getConnection().openSession()) {
             transaction = session.beginTransaction();
-            session.delete(session.get(User.class, id));
+            User user = session.get(User.class, id);
+            session.delete(user);
             transaction.commit();
         } catch (Exception e) {
+            transaction.rollback();
             e.printStackTrace();
-            if (transaction != null) {
-                transaction.rollback();
-            }
+            throw new RuntimeException();
         }
-        session.close();
     }
 
+
     @Override
-    public List<User> getAllUsers() {
-        Session session = sessionFactory.openSession();
-        CriteriaQuery<User> criteriaQuery = session.getCriteriaBuilder().createQuery(User.class);
-        criteriaQuery.from(User.class);
-
-        Transaction transaction = session.beginTransaction();
-        List<User> userList = session.createQuery(criteriaQuery).getResultList();
-
-        try {
+    public List < User > getAllUsers() {
+        List<User> result = new ArrayList<>();
+        Transaction transaction = null;
+        try (Session session = Util.getConnection().openSession()) {
+            CriteriaQuery<User> criteriaQuery = session.getCriteriaBuilder().createQuery(User.class);
+            criteriaQuery.from(User.class);
+            transaction = session.beginTransaction();
+            result = session.createQuery(criteriaQuery).getResultList();
             transaction.commit();
-            return userList;
-        } catch (HibernateException e) {
-            e.printStackTrace();
+        } catch (Exception e) {
             transaction.rollback();
-        } finally {
-            session.close();
+            e.printStackTrace();
+            throw new RuntimeException();
         }
-        return userList;
+        return result;
     }
 
     @Override
     public void cleanUsersTable() {
-        Session session = sessionFactory.openSession();
         Transaction transaction = null;
-
-        try {
+        try (Session session = Util.getConnection().openSession()) {
             transaction = session.beginTransaction();
             final List<User> deleted = session.createCriteria(User.class).list();
             for (Object o : deleted) {
@@ -126,11 +112,9 @@ public class UserDaoHibernateImpl implements UserDao {
             }
             session.getTransaction().commit();
         } catch (Exception e) {
+            transaction.rollback();
             e.printStackTrace();
-            if (transaction != null) {
-                transaction.rollback();
-            }
+            throw new RuntimeException();
         }
-        session.close();
     }
 }

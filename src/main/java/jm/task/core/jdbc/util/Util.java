@@ -11,7 +11,7 @@ public class Util {
     private static final String DRIVER = "com.mysql.cj.jdbc.Driver";
     private static final String URL = "jdbc:mysql://localhost:3306/mydatabase?useSSL=false";
     private static final String USERNAME = "root";
-    private static final String PASSWORD = "1303";
+    private static final String PASSWORD = "root";
     private static SessionFactory sessionFactory = null;
 
     public static SessionFactory getConnection() {

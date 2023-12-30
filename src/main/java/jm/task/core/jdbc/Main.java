@@ -7,7 +7,7 @@ public class Main {
     private final static UserService userService = new UserServiceImpl();
 
     public static void main(String[] args) {
-        userService.createUsersTable();
+        userService.createUsersTableQuery();
 
         userService.saveUser("test1", "test1", (byte) 1);
         userService.saveUser("test2", "test2", (byte) 2);
